@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗡️ 3D Dungeon Battle Arena</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .ui-panel {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .player-info {
+            top: 20px;
+            left: 20px;
+            border-color: #64B5F6;
+            min-width: 300px;
+        }
+
+        .ai-info {
+            top: 20px;
+            right: 20px;
+            border-color: #FF6B6B;
+            min-width: 300px;
+        }
+
+        .controls {
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-color: #FFD700;
+            text-align: center;
+            min-width: 600px;
+        }
+
+        .stats-bar {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 10px;
+        }
+
+        .stats-label {
+            min-width: 80px;
+            font-weight: bold;
+        }
+
+        .health-bar {
+            flex: 1;
+            height: 20px;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00FF00, #FFD700);
+            transition: width 0.3s ease;
+        }
+
+        .status-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            pointer-events: auto;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .game-over {
+            color: #FF6B6B;
+            animation: pulse 1s infinite;
+        }
+
+        .game-win {
+            color: #00FF00;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        .controls-text {
+            line-height: 1.8;
+            font-size: 14px;
+        }
+
+        .combo-counter {
+            position: absolute;
+            top: 200px;
+            right: 20px;
+            border: 2px solid #FFD700;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #FFD700;
+            font-size: 20px;
+            font-weight: bold;
+            min-width: 250px;
+            text-align: center;
+        }
+
+        .damage-indicator {
+            position: absolute;
+            color: #FF0000;
+            font-weight: bold;
+            font-size: 24px;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+        }
+
+        .ability-cooldown {
+            position: absolute;
+            bottom: 150px;
+            left: 20px;
+            border: 2px solid #9C27B0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #9C27B0;
+            min-width: 280px;
+        }
+
+        .ability-item {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ability-bar {
+            flex: 1;
+            height: 15px;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 3px;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+
+        .ability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #9C27B0, #E91E63);
+            transition: width 0.2s ease;
+        }
+
+        .score-board {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            border: 2px solid #00BCD4;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00BCD4;
+            min-width: 250px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer"></div>
+    
+    <div id="ui">
+        <!-- Player Info -->
+        <div class="ui-panel player-info">
+            <div style="font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #64B5F6;">⚔️ PLAYER</div>
+            <div class="stats-bar">
+                <span class="stats-label">Health:</span>
+                <div class="health-bar">
+                    <div class="health-fill" id="playerHealth" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <span class="stats-label">Shield:</span>
+                <div class="health-bar">
+                    <div class="health-fill" style="background: linear-gradient(90deg, #2196F3, #00BCD4); width: 100%" id="playerShield"></div>
+                </div>
+            </div>
+            <div style="margin-top: 10px; font-size: 14px;">
+                <div>❤️ HP: <span id="playerHPText">100/100</span></div>
+                <div>🛡️ Shield: <span id="playerShieldText">50/50</span></div>
+                <div>⚡ Level: <span id="playerLevel">1</span></div>
+            </div>
+        </div>
+
+        <!-- AI Info -->
+        <div class="ui-panel ai-info">
+            <div style="font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #FF6B6B;">👹 AI BOSS</div>
+            <div class="stats-bar">
+                <span class="stats-label">Health:</span>
+                <div class="health-bar">
+                    <div class="health-fill" id="aiHealth" style="background: linear-gradient(90deg, #FF6B6B, #FF0000); width: 100%"></div>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <span class="stats-label">Shield:</span>
+                <div class="health-bar">
+                    <div class="health-fill" style="background: linear-gradient(90deg, #FFB74D, #FF9800); width: 100%" id="aiShield"></div>
+                </div>
+            </div>
+            <div style="margin-top: 10px; font-size: 14px;">
+                <div>❤️ HP: <span id="aiHPText">150/150</span></div>
+                <div>🛡️ Shield: <span id="aiShieldText">75/75</span></div>
+                <div>🤖 AI Mode: <span id="aiMode">AGGRESSIVE</span></div>
+            </div>
+        </div>
+
+        <!-- Combo Counter -->
+        <div class="combo-counter" id="comboCounter" style="display: none;">
+            🔥 COMBO x<span id="comboCount">0</span>
+        </div>
+
+        <!-- Abilities -->
+        <div class="ability-cooldown">
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">⚡ ABILITIES</div>
+            <div class="ability-item">
+                <span style="font-size: 12px;">Slash (Q)</span>
+                <div class="ability-bar">
+                    <div class="ability-fill" id="ability1" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="ability-item">
+                <span style="font-size: 12px;">Spin (E)</span>
+                <div class="ability-bar">
+                    <div class="ability-fill" id="ability2" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="ability-item">
+                <span style="font-size: 12px;">Shield (R)</span>
+                <div class="ability-bar">
+                    <div class="ability-fill" id="ability3" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="ability-item">
+                <span style="font-size: 12px;">Ultimate (SPACE)</span>
+                <div class="ability-bar">
+                    <div class="ability-fill" id="ability4" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Score Board -->
+        <div class="score-board">
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">📊 STATS</div>
+            <div>Damage Dealt: <span id="damageDealt">0</span></div>
+            <div>Damage Taken: <span id="damageTaken">0</span></div>
+            <div>Kills: <span id="kills">0</span></div>
+            <div>Time: <span id="gameTime">0:00</span></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="ui-panel controls">
+            <div class="controls-text">
+                <div>🎮 <strong>WASD</strong> - Move | <strong>Mouse</strong> - Look | <strong>Q/E</strong> - Abilities | <strong>R</strong> - Shield</div>
+                <div><strong>SPACE</strong> - Ultimate Attack | <strong>Click</strong> - Basic Attack | <strong>P</strong> - Pause</div>
+                <div style="margin-top: 10px; color: #FFD700;">✨ Destroy the AI Boss and become the Dungeon Champion! ✨</div>
+            </div>
+        </div>
+
+        <!-- Status Message -->
+        <div id="statusMessage"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
